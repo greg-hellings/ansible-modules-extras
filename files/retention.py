@@ -9,12 +9,12 @@ description:
       indicate that something has changed if it deletes files or folders.
 short_description: Remove files/folders outside of retention policy
 options:
-  src: 
+  path: 
     description:
       - The folder where files/folders live that should be culled. If this folder does not exist, then this module
         will fail to execute.
     required: true
-    aliases: [ "directory" ]
+    aliases: [ "directory", "dest" ]
   count:
     description:
       - The number of files matching the pattern to retain. If you set this to 0, then all files matching the
@@ -34,7 +34,8 @@ options:
       - The method to use while ordering the entries within the directory. Only the latter elements in the ordering will be
         retained. So if you specify 'alphabetical' (the default) for ordering and '*' for your pattern, in a directory
         containing a, b, c, d, e, f, g, h, i then the latter alphabetical values will be retained while earlier entries in
-        the alphabet will be removed
+        the alphabet will be removed. "Time" will order based on modification time. Both orderings are in ascending order (e.g.
+        a to z, oldest to newest) with the later elements (x, y, z; newest entries) retained.
     required: false
     default: "alphabetical"
     choices: [ "alphabetical", "time" ]
@@ -50,10 +51,10 @@ options:
 
 EXAMPLES='''
 - name: keep only the last 3 apache log files
-  retention: src=/var/log/httpd pattern=access_log* count=3
+  retention: path=/var/log/httpd pattern=access_log* count=3
 
 - name: keep only the 5 most-recently updated copies of the application
-  retention: src=/home/application/copies pattern=* count=5 ordering="time"
+  retention: path=/home/application/copies pattern=* count=5 ordering="time"
 '''
 import glob
 import os
@@ -93,7 +94,7 @@ def delete_files(entry, recursive, module):
 def main():
     module = AnsibleModule(
             argument_spec={
-                'src': { 'required' : True, 'aliases': ['directory'] },
+                'path': { 'required' : True, 'aliases': ['directory', 'dest'] },
                 'count': { 'required' : True, 'aliases': ['retain'], 'type': 'int' },
                 'pattern': { 'default' : '*' },
                 'ordering': { 'default' : 'alphabetical', 'choices': ['time', 'alphabetical'] },
@@ -102,7 +103,7 @@ def main():
     )
     params = type('Params', (), module.params)
     try:
-        os.chdir(params.src)
+        os.chdir(params.path)
     except Exception, ex:
         module.fail_json(msg=str(ex))
     entries = glob.glob(params.pattern)
