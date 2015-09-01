@@ -1,6 +1,60 @@
 #!/usr/bin/env python
 
+DOCUMENTATION='''
+module: retention
+author: "Greg Hellings (@greghellings)"
+version_added: 2.0
+description:
+    - Define a retention policy for files or directories matching a particular shell pattern. This module will only
+      indicate that something has changed if it deletes files or folders.
+short_description: Remove files/folders outside of retention policy
+options:
+  src: 
+    description:
+      - The folder where files/folders live that should be culled. If this folder does not exist, then this module
+        will fail to execute.
+    required: true
+    aliases: [ "directory" ]
+  count:
+    description:
+      - The number of files matching the pattern to retain. If you set this to 0, then all files matching the
+        pattern will be deleted.
+    required: true
+    type: "int"
+    aliases: [ "retain" ]
+  pattern:
+    description:
+      - The filesystem pattern of files or folders within the specified directory to consider for retention and deletion.
+        See Python's glob.glob documentation for specific details, but in general the expansions available are ? to match
+        a single character, * to match mulitple characters, and [0-7] to match ranges of characters. Other types of expansion
+        patterns do not appear to work (e.g. {gz,bz2,xz} will not work, though it will work on some shells in Unix).
+    required: true
+  ordering:
+    description:
+      - The method to use while ordering the entries within the directory. Only the latter elements in the ordering will be
+        retained. So if you specify 'alphabetical' (the default) for ordering and '*' for your pattern, in a directory
+        containing a, b, c, d, e, f, g, h, i then the latter alphabetical values will be retained while earlier entries in
+        the alphabet will be removed
+    required: false
+    default: "alphabetical"
+    choices: [ "alphabetical", "time" ]
+  recursive:
+    description:
+      - If a folder is considered for deletion and this is set to "true", then the entire folder with its contents will be
+        recursively removed. If this is false (the default) then the directory must already be empty in order to be removed.
+        Attempting to remove a non-empty directory without setting this value to "true" will result in the module failing.
+    required: false
+    default: "False"
+    type: "bool"
+'''
 
+EXAMPLES='''
+- name: keep only the last 3 apache log files
+  retention: src=/var/log/httpd pattern=access_log* count=3
+
+- name: keep only the 5 most-recently updated copies of the application
+  retention: src=/home/application/copies pattern=* count=5 ordering="time"
+'''
 import glob
 import os
 import shutil
@@ -25,13 +79,13 @@ def sort_entries(entries, ordering, module):
 
 def delete_files(entry, recursive, module):
     try:
-        if recursive:
-            shutil.rmtree(entry)
-        else:
-            if os.path.isdir(entry):
-                os.rmdir(entry)
+        if os.path.isdir(entry):
+            if recursive:
+                shutil.rmtree(entry)
             else:
-                os.remove(entry)
+                os.rmdir(entry)
+        else:
+            os.remove(entry)
     except Exception as ex:
         module.fail_json(msg="Failed to delete item %s. Error %s" % (entry, str(ex)))
 
@@ -54,8 +108,11 @@ def main():
     entries = glob.glob(params.pattern)
     entries = sort_entries(entries, params.ordering, module)
     to_remove = []
-    for entry in entries[:-1*params.count]:
-        to_remove.append(entry)
+    if params.count == 0:
+        to_remove = entries
+    else:
+        for entry in entries[:-1*params.count]:
+            to_remove.append(entry)
     if len(to_remove) == 0:
         module.exit_json(changed=False, files=entries)
     else:
