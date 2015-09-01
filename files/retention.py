@@ -73,7 +73,7 @@ def sort_entries(entries, ordering, module):
     }
     try:
         return sorted(entries, key=key_methods[ordering])
-    except Exception as ex:
+    except Exception, ex:
         module.fail_json(msg="Failed to sort directory listings. %s" % (str(ex)))
 
 
@@ -86,7 +86,7 @@ def delete_files(entry, recursive, module):
                 os.rmdir(entry)
         else:
             os.remove(entry)
-    except Exception as ex:
+    except Exception, ex:
         module.fail_json(msg="Failed to delete item %s. Error %s" % (entry, str(ex)))
 
 
@@ -103,7 +103,7 @@ def main():
     params = type('Params', (), module.params)
     try:
         os.chdir(params.src)
-    except Exception as ex:
+    except Exception, ex:
         module.fail_json(msg=str(ex))
     entries = glob.glob(params.pattern)
     entries = sort_entries(entries, params.ordering, module)
