@@ -51,10 +51,10 @@ options:
 
 EXAMPLES='''
 - name: keep only the last 3 apache log files
-  retention: path=/var/log/httpd pattern=access_log* count=3
+  retention: path=/var/log/httpd pattern=access_log* count=3 ordering=time
 
 - name: keep only the 5 most-recently updated copies of the application
-  retention: path=/home/application/copies pattern=* count=5 ordering="time"
+  retention: path=/home/application/copies pattern=* count=5 ordering=time
 '''
 import glob
 import os
