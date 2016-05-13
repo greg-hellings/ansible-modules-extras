@@ -23,10 +23,10 @@ except ImportError:
 
 DOCUMENTATION = '''
 ---
-module: os_routers_facts
+module: os_router_facts
 short_description: Retrieve facts about one or more OpenStack routers.
 version_added: "2.2"
-author: "Davide Agnello (@dagnello)"
+author: "Greg Hellings (@greg-hellings)"
 description:
     - Retrieve facts about one or more routers from OpenStack.
 requirements:
@@ -47,7 +47,7 @@ extends_documentation_fragment: openstack
 
 EXAMPLES = '''
 # Gather facts about previously created routers
-- os_routers_facts:
+- os_router_facts:
     auth:
       auth_url: https://your_api_url.com:9000/v2.0
       username: user
@@ -56,7 +56,7 @@ EXAMPLES = '''
 - debug: var=openstack_routers
 
 # Gather facts about a previously created router by name
-- os_routers_facts:
+- os_router_facts:
     auth:
       auth_url: https://your_api_url.com:9000/v2.0
       username: user
@@ -67,7 +67,7 @@ EXAMPLES = '''
 
 # Gather facts about a previously created router with filter (note: name and
   filters parameters are Not mutually exclusive)
-- os_routers_facts:
+- os_router_facts:
     auth:
       auth_url: https://your_api_url.com:9000/v2.0
       username: user
@@ -117,7 +117,7 @@ def main():
 
     argument_spec = openstack_full_argument_spec(
         name=dict(required=False, default=None),
-        filters=dict(required=False, default=None)
+        filters=dict(required=False, type='dict', default=None)
     )
     module = AnsibleModule(argument_spec)
 
